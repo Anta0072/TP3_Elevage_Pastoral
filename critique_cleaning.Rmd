@@ -1,0 +1,152 @@
+---
+title: "Critique du cleaning.do — Temps 2"
+subtitle: "TP3 : Élevage Pastoral — Statistiques Agricoles"
+author: "Binôme — ENSAE 2026"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+---
+
+Ce document présente notre regard critique sur les choix de nettoyage faits dans `cleaning.do`. Pour chaque décision discutable, on explique ce qui a été fait, pourquoi c'est questionnable, et ce qu'on recommande.
+
+---
+
+## Bloc 1 — Identifiants et géographie
+
+### Double traitement du pays (extraction depuis l'ID + replace)
+
+Ce double traitement est nécessaire pour corriger les incohérences au niveau de la variable *Région*. La commande `list` a permis de voir que certaines régions comme *Kayes* avaient été affectées à des pays auxquels elles n'appartenaient pas.
+
+**Recommandation :** ✅ On garde.
+
+### Suppression de variables
+
+- **Ordredesaisie** : suppression justifiée — n'apporte pas d'information utile et comporte de nombreuses valeurs manquantes.
+- **Zonederéférence** : suppression justifiée — la plupart des observations sont manquantes.
+- **PAYS** : suppression justifiée — redondante avec `country` et comporte de nombreuses valeurs manquantes.
+- **Groupedorigine** : suppression justifiée — 87 modalités dont *Peul* largement majoritaire. La variable n'est pas exploitable pour nos analyses.
+
+**Recommandation :** ✅ On garde.
+
+---
+
+## Bloc 2 — Composition du ménage
+
+### Recalcul de `Nombretotaldepersonnes`
+
+La variable d'origine comporte de nombreuses valeurs manquantes. Comme elle est la somme des hommes et femmes adultes, des filles et garçons de moins de 12 ans, on la supprime et on la recalcule pour toutes les lignes.
+
+**Recommandation :** ✅ On garde.
+
+### Coefficient 0.75 pour les enfants (Équivalents Adultes)
+
+Ce coefficient n'est pas standard — il n'existe pas de valeur universellement fixée pour l'équivalent adulte d'un enfant de moins de 12 ans. L'IA justifie ce choix par le fait que les enfants de 10-11 ans ont des besoins nutritionnels proches d'un adulte. Mais cette explication reste insuffisante : les besoins d'un nourrisson sont bien inférieurs à ceux d'un adulte, alors que les deux sont inclus dans la même catégorie "moins de 12 ans".
+
+**Recommandation :** ⚠️ On remplace par **0.5**, valeur plus couramment utilisée et plus raisonnable dans ce contexte.
+
+---
+
+## Bloc 3 — Ventes de bétail
+
+### Point 1 — Le cas "sendré"
+
+*Sendré* est probablement le nom d'un lieu (village ou marché sahélien). L'enquêteur a saisi par erreur le nom du lieu dans la case réservée au prix.
+
+Les valeurs imputées (mâle, 2 ans, appartenant à la famille, vendu en avril 2015 au marché de Sendré à 45 000 FCFA) ne sont pas aléatoires — elles sont cohérentes avec les prix pratiqués en zone sahélienne à cette période.
+
+**Ce qui pose problème :** ces valeurs sont codées en dur sans aucune explication. Dans 6 mois, personne ne pourra vérifier d'où elles viennent.
+
+**Recommandation :** ✅ On garde l'imputation. On ajoute un commentaire expliquant l'origine de chaque valeur.
+
+### Point 2 — Le reshape wide→long et `duplicates drop`
+
+Après le reshape, un ménage ayant vendu 3 animaux se retrouve avec 3 lignes remplies et 47 lignes vides. Le `duplicates drop` est là pour supprimer ces lignes vides.
+
+**Ce qui pose problème :** `force` supprime silencieusement les vraies ventes identiques — deux animaux mâles de 2 ans vendus au même prix au même endroit le même mois disparaissent sans avertissement.
+
+**Ce qu'on a fait :** on a remplacé par `drop if Prix == "" | Prix == "."`, puis vérifié les vrais doublons. Les doublons restants portent le même ID ménage — c'est probablement une erreur de saisie. On les supprime, ce qui revient au même résultat que l'auteur du script.
+
+```stata
+drop if Prix == "" | Prix == "."
+```
+
+**Recommandation :** ✅ Suppression des doublons confirmée après inspection manuelle.
+
+### Point 3 — Imputation des prix hors plage [20 000 ; 450 000]
+
+Les prix hors plage sont remplacés par la moyenne du groupe (Sexe × Age × Pays). La plage correspond aux prix réels du marché sahélien : 20 000 FCFA pour un petit ruminant maigre, 450 000 FCFA pour un bovin de qualité.
+
+**Ce qui pose problème :** la moyenne écrase la variabilité naturelle des prix. Si un groupe n'a aucun prix valide, l'imputation échoue silencieusement.
+
+**Recommandation :** ✅ On remplace par la **médiane conditionnelle** — moins sensible aux valeurs extrêmes et plus robuste dans ce contexte.
+
+### Point 4 — La variable soudure (mois 5 à 8)
+
+La soudure est la période où les stocks alimentaires sont épuisés avant la nouvelle récolte. C'est le moment où les ménages vendent des animaux pour acheter des céréales — variable clé pour comprendre les stratégies de survie.
+
+Mai à août correspond à la période conventionnellement utilisée dans la littérature sahélienne (FAO, CILSS).
+
+**Ce qui pose problème :** la même définition est appliquée aux 5 pays alors que la soudure ne tombe pas aux mêmes mois partout.
+
+| Pays | Soudure réelle |
+|------|---------------|
+| Niger | Juin – septembre |
+| Mauritanie | Juillet – octobre |
+| Sénégal | Juin – août (nord) |
+| Mali | Variable selon la zone |
+| Burkina Faso | Mai – septembre |
+
+**Recommandation :** ✅ On garde. On mentionne cette limite dans l'interprétation des résultats de la régression.
+
+---
+
+## Bloc 4 — Émigration
+
+### Point 1 — Le do-file externe `emigration_cleaning.do`
+
+Le fichier est entièrement consacré à une seule variable : `Endroit` (destination du migrant en texte libre). Les trois autres variables — `Liensdeparenté`, `Activité` et `Années` — ne sont jamais nettoyées et arrivent brutes dans la base finale.
+
+La technique d'harmonisation repose sur des dizaines de `replace` avec `strmatch` codés en dur. C'est fonctionnel mais fragile.
+
+**Trois problèmes identifiés :**
+
+- **Bug encode** : les codes assignés par `encode` suivent l'ordre alphabétique, pas l'ordre du `lab def`. La comparaison `destination == country` qui suit est donc fausse pour tous les pays.
+- **Patterns trop courts** : `"*esp*"` (Espagne), `"*bf*"` (Burkina), `strmatch(Endroit, "niger")` sans wildcards — risques de faux positifs ou de non-capture.
+- **Arabie Saoudite et La Mecque classées en "Afrique du Nord"** : mélange migration économique et pèlerinage dans la même zone.
+
+**Recommandation :** ⚠️ Corriger le bug `encode`, élargir les patterns courts (`"*burkina*"`), ajouter le nettoyage de `Liensdeparenté` et `Activité`.
+
+### Point 2 — Suppression des observations incomplètes
+
+```stata
+drop if missing(Liensdeparenté) & missing(Années) & missing(Activité)
+```
+
+Après le reshape, les ménages avec peu de migrants génèrent des lignes vides. La condition **ET** ne supprime que les lignes où les trois variables sont simultanément manquantes — les lignes partiellement renseignées sont conservées. C'est le bon réflexe : un **OU** supprimerait la majorité des migrants déclarés dans une enquête où les données sont rarement complètes.
+
+**Deux problèmes :**
+
+- `Endroit` est absent de la condition alors que c'est la variable principale. Une ligne avec uniquement une destination renseignée passe le filtre et compte comme un migrant.
+- Les lignes quasi-vides ne sont pas signalées : une ligne avec seulement `Liensdeparenté` renseigné passe le filtre et compte comme un migrant.
+
+**Recommandation :** ⚠️ Ajouter `Endroit` dans la condition et créer un score de complétude pour filtrer selon les besoins de chaque analyse.
+
+---
+
+## Synthèse des décisions
+
+| Bloc | Décision | Risque | Recommandation |
+|------|----------|--------|----------------|
+| Bloc 1 | Extraction pays + replace | Erreur silencieuse si l'ID change | Garder |
+| Bloc 1 | Suppression de 4 variables | Perte d'information potentielle | Garder — justifiée |
+| Bloc 2 | Coefficient EA 0.75 | Pas standard pour les nourrissons | Remplacer par 0.5 |
+| Bloc 3 | Imputation sendré | Valeurs non documentées | Garder + commenter l'origine |
+| Bloc 3 | `duplicates drop force` | Supprime de vraies ventes | Remplacé par `drop if Prix == ""` après vérification |
+| Bloc 3 | Plage prix [20k ; 450k] | Bornes arbitraires | Garder + médiane à la place de la moyenne |
+| Bloc 3 | Soudure mois 5–8 | Non homogène sur 5 pays | Garder + mentionner la limite |
+| Bloc 4 | Bug encode | Comparaisons géographiques fausses | Corriger |
+| Bloc 4 | Condition ET émigration | Endroit absente de la condition | Ajouter Endroit + score de complétude |

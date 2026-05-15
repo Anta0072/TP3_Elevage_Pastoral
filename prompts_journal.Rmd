@@ -1,0 +1,58 @@
+---
+title: "Journal de Prompts"
+subtitle: "TP3 : Élevage Pastoral — Statistiques Agricoles"
+author: "Binôme — ENSAE 2026"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    highlight: tango
+---
+
+Ce journal documente chaque interaction avec Claude Code : le prompt envoyé, ce que Claude a répondu, et ce que le binôme a modifié ou corrigé.  
+La colonne **"Ce que nous avons modifié"** montre notre regard critique sur le travail de l'IA.
+
+---
+
+## Bloc 1 — Identifiants et géographie
+
+| Tâche | Prompt envoyé | Réponse (résumé) | Ce que nous avons modifié |
+|-------|--------------|-----------------|--------------------------|
+| Explication Bloc 1 | Explique le Bloc 1 ligne par ligne. Pour chaque opération : ce qu'elle fait, pourquoi elle est nécessaire, que se passerait-il sans elle. | Explication détaillée de l'extraction du pays depuis l'ID et des corrections manuelles via `replace`. | Ajout du bloc de configuration des chemins (`global root`, `inputfile`, `data`, `codes`) pour la reproductibilité. Commentaires reformulés et simplifiés. |
+| Critique Bloc 1 | Identifie les choix discutables dans le Bloc 1 et propose une alternative pour chacun. | Double traitement pays (ID + replace) risqué. Suppression de variables justifiée. | Alternatives proposées identifiées et comprises mais non appliquées — les choix originaux sont jugés suffisants pour le niveau du TP. |
+
+---
+
+## Bloc 2 — Composition du ménage
+
+| Tâche | Prompt envoyé | Réponse (résumé) | Ce que nous avons modifié |
+|-------|--------------|-----------------|--------------------------|
+| Explication Bloc 2 | Explique le Bloc 2 ligne par ligne. Pour chaque opération : ce qu'elle fait, pourquoi elle est nécessaire, que se passerait-il sans elle. | Explication du recalcul de `Nombretotaldepersonnes` et du calcul des Équivalents Adultes. | Ajout de la ligne de code qui sauvegarde la base ménage, que l'IA avait seulement signalée sans l'intégrer. |
+| Critique coefficient EA 0.75 | Le coefficient 0.75 pour les enfants dans le calcul des EA est-il standard ? Quelles alternatives existent dans la littérature sahélienne ? | Coefficient usuel mais variable selon les études. Alternative : différenciation par tranche d'âge. | Remplacement du coefficient 0.75 par 0.5 (norme FAO). On n'a pas différencié par tranche d'âge. |
+| Critique recalcul ménage | Pourquoi recalculer `Nombretotaldepersonnes` plutôt qu'utiliser la variable d'origine ? | Variable d'origine potentiellement erronée ou incohérente avec les membres déclarés. | La variable comporte de nombreuses valeurs manquantes. Comme elle est la somme des hommes, femmes adultes, filles et garçons de moins de 12 ans, on la supprime et on la recalcule pour toutes les lignes. |
+
+---
+
+## Bloc 3 — Ventes de bétail
+
+| Tâche | Prompt envoyé | Réponse (résumé) | Ce que nous avons modifié |
+|-------|--------------|-----------------|--------------------------|
+| Explication Bloc 3 | Explique le Bloc 3 ligne par ligne. Pour chaque opération : ce qu'elle fait, pourquoi elle est nécessaire, que se passerait-il sans elle. | Explication du reshape wide à long, du nettoyage des variables et de l'imputation des prix. | L'IA avait confondu les deux problèmes de prix. On remplace tous les prix manquants par la moyenne du groupe — qu'ils soient manquants depuis le départ ou exclus comme aberrants. |
+| Critique sendré | Que signifie probablement sendré dans le contexte pastoral sahélien ? Pourquoi ces valeurs ont été choisies pour l'imputation ? | Sendré est un nom de famille — l'enquêteur a saisi le nom de l'acheteur dans la case Prix. | En visualisant la base, sendré est un lieu et non un nom de famille. Ajout d'un commentaire expliquant l'origine des valeurs imputées. |
+| Vérification doublons avant drop | Ajoute un bloc de vérification avant `duplicates drop` pour distinguer les lignes vides des vraies ventes identiques. | Code ajouté : `duplicates report` + `duplicates tag` + `browse` pour inspection manuelle. | Accepté. Le code proposé est plus fluide et compréhensible. |
+| Critique reshape et doublons | Pourquoi le reshape génère des doublons ? Que supprime `duplicates drop force` ? Propose une alternative. | `force` supprime aussi de vraies ventes identiques. Alternative : `drop if Prix == ""`. | Adoption de `drop if Prix == "" \| Prix == "."` à la place de `duplicates drop force` après inspection manuelle. |
+| Critique imputation prix hors plage | Les prix hors plage [20 000 ; 450 000] sont remplacés par la moyenne conditionnelle. Est-ce raisonnable ? Propose 3 alternatives. | Moyenne sensible aux extrêmes résiduels. Alternatives : médiane conditionnelle, winsorisation, suppression. | On a utilisé la médiane conditionnelle car moins sensible aux valeurs extrêmes. |
+| Critique variable soudure | La variable soudure est construite sur les mois 5 à 8. Que représente-t-elle ? Est-ce homogène sur les 5 pays ? | Période de tension alimentaire. Définition non homogène selon les pays (Niger : juin–sept, Mauritanie : juil–oct). | Variable gardée telle quelle. Limite du décalage de période mentionnée dans l'interprétation. |
+
+---
+
+## Bloc 4 — Émigration
+
+| Tâche | Prompt envoyé | Réponse (résumé) | Ce que nous avons modifié |
+|-------|--------------|-----------------|--------------------------|
+| Explication Bloc 4 | Explique le Bloc 4 ligne par ligne. Pour chaque opération : ce qu'elle fait, pourquoi elle est nécessaire, que se passerait-il sans elle. | Explication de l'appel au sous-script et de la suppression des observations incomplètes. | L'IA a nommé les variables sans expliquer ce qu'elles mesurent concrètement. Sans ce contexte, on ne comprend pas pourquoi `Endroit` est la seule variable posant un problème d'harmonisation. |
+| Prédiction emigration_cleaning.do | Sans lire `emigration_cleaning.do`, propose ce que ce fichier pourrait contenir. | Attendu : nettoyage de `Liensdeparenté`, `Activité`, `Années`, `Endroit` avec harmonisation et regroupements géographiques. | En visualisant le fichier réel, on voit que seul `Endroit` est nettoyé — contrairement à ce que l'IA avait prédit. |
+| Comparaison avec fichier réel | Lis `emigration_cleaning.do` et compare avec ta prédiction. Qu'avais-tu bien anticipé ? Qu'est-ce qui t'a surpris ? | Seul `Endroit` est nettoyé. Bug `encode` détecté. `Liensdeparenté` et `Activité` arrivent brutes. | On a utilisé les codes originaux tels quels — aucun bug constaté. Quelques manipulations ont été faites pour traiter `Années`, `Activité`, etc. qui n'étaient pas traitées comme `Endroit`. |
+| Critique condition ET vs OU | Pourquoi la condition logique est-elle un ET et non un OU ? Quel est l'impact sur l'échantillon ? | ET préserve les observations partielles. OU supprimerait la majorité des migrants déclarés. | Accepté. |
