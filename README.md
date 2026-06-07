@@ -1,15 +1,15 @@
 ---
 title: "README — Setup Claude Code"
-author: "Binôme — ENSAE 2026"
+author: "Anta NDAO et Mame Diarra NDIAYE — ISEP 2"
 date: "`r Sys.Date()`"
 output:
+  pdf_document:
+    toc: true
   html_document:
     toc: true
     toc_float: true
     theme: flatly
     highlight: tango
-  pdf_document:
-    toc: true
 subtitle: 'TP3 : Élevage Pastoral — Statistiques Agricoles'
 ---
 
@@ -34,21 +34,17 @@ subtitle: 'TP3 : Élevage Pastoral — Statistiques Agricoles'
 
 ```
 tp3-elevage/
-├── data/
-│   ├── raw/          # données brutes (famille_troupeau.dta)
-│   └── cleaned/      # bases nettoyées exportées par R
-├── scripts/
-│   ├── 1_cleaning.do              # script Stata original
-│   ├── cleaning_commented.do      # version commentée et critique
-│   ├── emigration_cleaning.do     # sous-script émigration
-│   └── Analysis.do                # analyses statistiques
-├── reports/
-│   ├── critique_cleaning.Rmd      # critique du nettoyage
-│   ├── prompts.Rmd                # journal de prompts
-│   └── Readme.Rmd                 # setup Claude Code (ce fichier)
-├── output/                        # tableaux et graphiques
-├── README.md
-└── PROMPTS.md
+  data/
+    raw/          # données brutes (famille_troupeau.dta)
+    cleaned/      # bases nettoyées exportées par R
+  scripts/
+    cleaning_commented.do      # version commentée et critique
+    emigration_cleaning.do     # sous-script émigration
+    Analysis.do                # analyses statistiques
+  output/                      # tableaux et graphiques
+  README.md
+  Prompts_journal.Rmd
+  Critique_cleaning.Rmd
 ```
 
 ---
@@ -71,13 +67,7 @@ Dans `scripts/cleaning_commented.do`, changer **uniquement** cette ligne :
 global root "C:/VOTRE/CHEMIN/tp3-elevage"
 ```
 
-**Étape 3 — Installer les packages R**
-
-```r
-install.packages(c("haven", "tidyverse", "stargazer", "ggplot2"))
-```
-
-**Étape 4 — Exécuter les scripts dans l'ordre**
+**Étape 3 — Exécuter les scripts dans l'ordre**
 
 ```
 cleaning_commented.do  →  Analysis.do
