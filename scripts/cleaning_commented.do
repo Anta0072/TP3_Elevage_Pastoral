@@ -123,7 +123,10 @@ replace `var'=0 if missing(`var')
 }
 
 * On crée une variable qui donne la taille du ménage en équivalent adulte en considérant que les enfants de moins de 12 ans représentent 3/4 d'adulte. Etant donné que les enfants ne consomment pas de la même manière que les adultes, ce code permet de d'estimer de manière plus pertinente les besoins des ménages. Sans ça on sous-estimerait ou sur-estimerait les besoins réels du ménage.
-gen HHsizeEA = HommesadultesHA + FemmesadultesFA+ VieuxV +0.5*(Garçonsde12ansG12+Fillesde12ansF12)
+*gen HHsizeEA = HommesadultesHA + FemmesadultesFA+ VieuxV + 0.75*(Garçonsde12ansG12+Fillesde12ansF12)
+
+* On remplace 0.75 par 0.5
+gen HHsizeEA = HommesadultesHA + FemmesadultesFA+ VieuxV + 0.5*(Garçonsde12ansG12+Fillesde12ansF12)
 
 compress
 save "${data}/FT_cleanMenage.dta", replace
