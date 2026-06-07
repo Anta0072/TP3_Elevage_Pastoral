@@ -1,24 +1,26 @@
 ---
 title: "Journal de Prompts"
-subtitle: "TP3 : Élevage Pastoral — Statistiques Agricoles"
-author: "Binôme — ENSAE 2026"
+author: "ANta NDAO et Mame Diarra NDIAYE — ENSAE 2026"
 date: "`r Sys.Date()`"
 output:
+  pdf_document:
+    toc: true
   html_document:
     toc: true
     toc_float: true
     theme: flatly
     highlight: tango
+subtitle: 'TP3 : Élevage Pastoral — Statistiques Agricoles'
 ---
 
-Ce journal documente chaque interaction avec Claude Code : le prompt envoyé, ce que Claude a répondu, et ce que le binôme a modifié ou corrigé.  
+Ce journal documente chaque interaction avec Claude Code : le prompt envoyé, ce que Claude a répondu, et ce que nous  avons modifié ou corrigé.  
 La colonne **"Ce que nous avons modifié"** montre notre regard critique sur le travail de l'IA.
 
 ---
 
 ## Bloc 1 — Identifiants et géographie
 
-| Tâche | Prompt envoyé | Réponse (résumé) | Ce que nous avons modifié |
+| Tâche | Prompt envoyé | Réponse  m(résumé) | Ce que nous avons modifié |
 |-------|--------------|-----------------|--------------------------|
 | Explication Bloc 1 | Explique le Bloc 1 ligne par ligne. Pour chaque opération : ce qu'elle fait, pourquoi elle est nécessaire, que se passerait-il sans elle. | Explication détaillée de l'extraction du pays depuis l'ID et des corrections manuelles via `replace`. | Ajout du bloc de configuration des chemins (`global root`, `inputfile`, `data`, `codes`) pour la reproductibilité. Commentaires reformulés et simplifiés. |
 | Critique Bloc 1 | Identifie les choix discutables dans le Bloc 1 et propose une alternative pour chacun. | Double traitement pays (ID + replace) risqué. Suppression de variables justifiée. | Alternatives proposées identifiées et comprises mais non appliquées — les choix originaux sont jugés suffisants pour le niveau du TP. |
